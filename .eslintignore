@@ -1,0 +1,17 @@
+node_modules
+jest-stare
+bin
+dist
+dist-prod
+logs
+migrations
+test
+coverage
+/**/*.test.ts
+/**/*.spec.ts
+package-scripts.js
+@types
+.eslint-report.json
+*.config.js
+nest-cli.json
+sonar-scanner.ts

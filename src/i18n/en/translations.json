@@ -1,0 +1,54 @@
+{
+  "validation": {
+    "errors": {
+      "INVALID_EMAIL": "{property} is not an valid email",
+      "IS_EMPTY": "{property} should not be empty",
+      "IS_STRING": "{property} must be of type string",
+      "IS_NUMBER": "{property} must be of type number",
+      "IS_BOOLEAN": "{property} must be of type boolean",
+      "IS_DATE": "{property} must be an date string"
+    }
+  },
+  "auth": {
+    "errors": {
+      "PUBLIC_KEY_NOT_FOUND": {
+        "TITLE": "Please check the public key",
+        "MESSAGE": "Public key and private key not matching"
+      },
+      "JWT_EXPIRED": {
+        "TITLE": "Error!",
+        "MESSAGE": "JWT token expired"
+      },
+      "USER_NOT_FOUND": "Unable to find user details",
+      "USER_ROLE_NOT_FOUND": "Unable to find user role details",
+      "INCORRECT_PASSWORD": "Username or password is incorrect",
+      "EMAIL_EXIST": "Email ID already exist",
+      "INVALID_OTP": "Invalid OTP"
+    }
+  },
+  "user": {
+    "errors": {
+      "USER_EMAIL_EXIST": {
+        "TITLE": "Unable to register the user",
+        "MESSAGE": "Email already exist"
+      },
+      "USER_NOT_EXIST": {
+        "TITLE": "",
+        "MESSAGE": "User not exist"
+      },
+      "USER_ROLE_NOT_EXIST": {
+        "TITLE": "",
+        "MESSAGE": "Unable to find user role details"
+      },
+      "USER_DETAILS_EXIST": {
+        "TITLE": "Unable to register the user",
+        "MESSAGE": "Email or phone already exist"
+      }
+    }
+  },
+  "cache": {
+    "success": {
+      "CLEAR_CACHE": "Cache cleared successfully"
+    }
+  }
+}

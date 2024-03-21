@@ -1,0 +1,17 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+### Verfiy Lint
+# npm run lint
+
+# npm run lint-staged
+## npx lint-staged --allow-empty
+
+## Detect Circular Dependency
+# npm run detect-ci
+
+### Verify Build
+# npm run build
+
+### Verify Test
+# npm run test

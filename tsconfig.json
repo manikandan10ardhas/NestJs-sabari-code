@@ -1,0 +1,42 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "es2021",
+    "allowJs": true,
+    "importHelpers": true /* Import emit helpers from 'tslib'. */,
+    "strict": true /* Enable all strict type-checking options. */,
+    "strictNullChecks": true /* Enable strict null checks. */,
+    "strictPropertyInitialization": true /* Enable strict checking of property initialization in classes. */,
+    "alwaysStrict": true /* Parse in strict mode and emit "use strict" for each source file. */,
+    "sourceMap": true,
+    "noImplicitReturns": true /* Report error when not all code paths in function return a value. */,
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "incremental": true,
+    "skipLibCheck": true,
+    "noImplicitAny": true,
+    "strictBindCallApply": false,
+    "noFallthroughCasesInSwitch": true,
+    "typeRoots": ["@types", "node_modules/@types"] /* List of folders to include type definitions from. */,
+    "moduleResolution": "node",
+    "esModuleInterop": false,
+    "resolveJsonModule": true /* Include modules imported with '.json' extension */,
+    "forceConsistentCasingInFileNames": true,
+    "paths": {
+      "@core/*": ["src/core/*"],
+      "@repo/*": ["src/repo/*"],
+      "@constants/*": ["src/constants/*"],
+      "@filters/*": ["src/filters/*"],
+      "@helpers/*": ["src/helpers/*"],
+      "@lib/*": ["src/lib/*"],
+      "@modules/*": ["src/modules/*"]
+    }
+  },
+  "include": ["src/**/*", "src/**/*.json"],
+  "exclude": ["node_modules", "test", "test/**/*", "**/*.test.ts", "**/*.spec.ts"]
+}

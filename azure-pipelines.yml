@@ -1,0 +1,211 @@
+pool:
+  vmImage: "ubuntu-latest"
+
+name: "$(MajorVersion).$(SprintVersion).$(Rev:r)"
+
+variables:
+  ImageNameTag: v$(Build.BuildNumber)
+  buildEnvNameVersion: $(buildEnvConfig)-$(Build.BuildNumber).$(Build.BuildId)
+
+stages:
+  - stage: build
+    displayName: "Build"
+    jobs:
+      - job: build_backend
+        displayName: "Build backend API"
+        steps:
+          - script: 'echo "MajorVersion: $(MajorVersion), SprintVersion: $(SprintVersion), BuildNumber: $(Build.BuildNumber), BuildId: $(Build.BuildId)"'
+            failOnStderr: true
+            displayName: "Build Info Version"
+          - script: |
+              cd $(System.DefaultWorkingDirectory)           
+              echo "\n Copy and Rename env file"
+              cp .env.sample .env
+              echo "-----------------------------------"
+              cat .env
+              sed -i -e s/REP_API_BUILD_VERSION/$(Build.BuildId)/g .env
+              sed -i -e s/REP_API_RELEASE_VERSION/$(Build.BuildNumber)/g .env
+              sed -i -e s/REP_ENABLE_DEBUG/$(REP_ENABLE_DEBUG)/g .env
+              sed -i -e s/REP_SONARQUBE_PROJECTKEY/$(REP_SONARQUBE_PROJECTKEY)/g .env
+              sed -i -e s/REP_SONARQUBE_PROJECT_VERSION/$(buildEnvNameVersion)/g .env
+              sed -i -e s/REP_SONARQUBE_TOKEN/$(REP_SONARQUBE_TOKEN)/g .env
+              sed -i -e s/REP_SONARQUBE_URL/$(echo $(REP_SONARQUBE_URL) | sed 's_/_\\/_g')/g .env
+              cat .env
+              echo "\n"
+            failOnStderr: true
+            displayName: "Node env file replacement"
+
+          - task: NodeTool@0
+            displayName: "Use Node.js v18.12.0"
+            inputs:
+              versionSpec: 18.12.0
+
+          - task: Npm@1
+            displayName: "npm install packages"
+            inputs:
+              command: custom
+              verbose: false
+              customCommand: install
+          - task: Npm@1
+            displayName: "Build NestJs"
+            inputs:
+              command: custom
+              verbose: false
+              customCommand: "run build"
+          - script: |
+              rm -rf node_modules
+              rm -rf .git
+              rm -rf .gitignore
+              echo "Moving build files to docker build directory"
+              mkdir -p docker_source
+              cp -rf dist/ docker_source/dist
+              cp .env docker_source/.env
+              cp Dockerfile docker_source/Dockerfile
+              cp package.json docker_source/package.json
+              cp package-lock.json docker_source/package-lock.json
+              cp .dockerignore docker_source/.dockerignore
+            displayName: "Copying source dir with build"
+          - task: ArchiveFiles@2
+            displayName: "Archive Build"
+            inputs:
+              rootFolderOrFile: "$(System.DefaultWorkingDirectory)"
+              archiveFile: "$(Build.ArtifactStagingDirectory)/api_source-$(Build.SourceBranchName)-$(Build.BuildNumber)-$(Build.BuildId).zip"
+              replaceExistingArchive: false
+              includeRootFolder: false
+              archiveType: "zip"
+              tarCompression: "gz"
+          - task: ArchiveFiles@2
+            displayName: "Archive Build"
+            inputs:
+              rootFolderOrFile: "$(System.DefaultWorkingDirectory)/docker_source"
+              archiveFile: "$(Build.ArtifactStagingDirectory)/docker_source-$(Build.SourceBranchName)-$(Build.BuildNumber)-$(Build.BuildId).zip"
+              replaceExistingArchive: false
+              includeRootFolder: false
+              archiveType: "zip"
+              tarCompression: "gz"
+          - task: PublishBuildArtifacts@1
+            displayName: "Publish Build Artifact"
+            inputs:
+              PathtoPublish: "$(Build.ArtifactStagingDirectory)"
+              ArtifactName: "source_output"
+              publishLocation: "Container"
+  - stage: lint_test
+    displayName: Lint & Test
+    dependsOn:
+      - build
+    condition: and(succeeded('build'), eq(variables['isPublishLintReport'], 1))
+    jobs:
+      - deployment: lint_test_report
+        displayName: "lint & Test Node API"
+        environment: "$(PIPELINE_ENVIRONMENT_NAME)"
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: none
+                - task: DownloadPipelineArtifact@2
+                  displayName: "Download Build Artifact"
+                  inputs:
+                    buildType: "current"
+                    artifactName: "source_output"
+                    targetPath: "$(System.DefaultWorkingDirectory)"
+                - task: ExtractFiles@1
+                  displayName: "Extract Build Artifact"
+                  inputs:
+                    archiveFilePatterns: "$(System.DefaultWorkingDirectory)/api_source-$(Build.SourceBranchName)-$(Build.BuildNumber)-$(Build.BuildId).zip"
+                    destinationFolder: $(System.DefaultWorkingDirectory)/api_source
+                    cleanDestinationFolder: true
+                    overwriteExistingFiles: true
+                - script: |
+                    ls -lrt                   
+                    cd $(System.DefaultWorkingDirectory)/api_source
+                    rm -rf node_modules
+                    node -v
+                    npm install -g sonarqube-scanner                 
+                    npm install
+                    npm cache clear -f
+                    npm run lint:report
+                  displayName: "Lint and Generate Report"
+                  condition: and(eq(variables['isRunLintReport'], 1),succeededOrFailed())
+                - script: |
+                    cd $(System.DefaultWorkingDirectory)/api_source                    
+                    npm run test:coverage
+                  displayName: "Generate Test Report"
+                  condition: and(eq(variables['isRunTestReport'], 1),succeededOrFailed())
+                - task: PublishTestResults@2
+                  displayName: "Publish Test Results"
+                  inputs:
+                    testResultsFiles: "$(System.DefaultWorkingDirectory)/api_source/coverage/junit.xml"
+                  continueOnError: true
+                  condition: and(eq(variables['isRunTestReport'], 1),succeededOrFailed())
+                # Publishes Coverage from cobertura xml
+                - task: PublishCodeCoverageResults@1
+                  displayName: "Publish Code Coverage"
+                  inputs:
+                    codeCoverageTool: Cobertura
+                    summaryFileLocation: "$(System.DefaultWorkingDirectory)/api_source/coverage/*cobertura-coverage.xml"
+                  continueOnError: true
+                  condition: and(eq(variables['isRunTestReport'], 1), succeededOrFailed())
+                # Publishes to SonarQube
+                - script: |
+                    cd $(System.DefaultWorkingDirectory)/api_source
+                    npm cache clear -f
+                    npm run sonar
+                  displayName: "Publish Report To SonarQube"
+                  continueOnError: true
+                  condition: and(eq(variables['isRunTestReport'], 1), eq(variables['isPublishLintReport'], 1))
+  - stage: build_docker_image
+    displayName: ACR - Build and Push
+    dependsOn:
+      - build
+    condition: succeeded('build')
+    jobs:
+      - deployment: build_docker_image
+        displayName: "Build and push Docker Image"
+        environment: "$(PIPELINE_ENVIRONMENT_NAME)"
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: none
+                - task: DownloadPipelineArtifact@2
+                  displayName: Download Build Artifact
+                  inputs:
+                    buildType: "current"
+                    artifactName: "source_output"
+                    targetPath: "$(System.DefaultWorkingDirectory)"
+                - task: ExtractFiles@1
+                  displayName: "Extract Build Artifact"
+                  inputs:
+                    archiveFilePatterns: "$(System.DefaultWorkingDirectory)/docker_source-$(Build.SourceBranchName)-$(Build.BuildNumber)-$(Build.BuildId).zip"
+                    destinationFolder: $(System.DefaultWorkingDirectory)/drop
+                    cleanDestinationFolder: true
+                    overwriteExistingFiles: true
+                - task: Docker@2
+                  displayName: Login to ACR
+                  inputs:
+                    containerRegistry: "$(dockerRegistryServiceConnection)"
+                    command: "login"
+                - task: Docker@2
+                  displayName: "Build Image"
+                  inputs:
+                    containerRegistry: "$(dockerRegistryServiceConnection)"
+                    repository: "$(azureContainerRepo)"
+                    command: "build"
+                    Dockerfile: "**/Dockerfile"
+                    tags: |
+                      latest
+                      $(ImageNameTag)
+                    arguments: "--build-arg NODE_ENV=$(buildEnvConfig)"
+                - script: |
+                    pwd
+                    ls -lrt               
+                    docker images
+                - task: Docker@2
+                  displayName: "Push Image"
+                  inputs:
+                    containerRegistry: "$(dockerRegistryServiceConnection)"
+                    repository: "$(azureContainerRepo)"
+                    command: "push"
+                    tags: $(ImageNameTag)
+                  condition: succeeded()

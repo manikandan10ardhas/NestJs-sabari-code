@@ -1,0 +1,70 @@
+# compiled output
+/dist
+/node_modules
+
+# Logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+build/
+logs/
+uploads/
+
+
+# OS
+.DS_Store
+
+# Tests
+/coverage
+/.nyc_output
+.env.test
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Applications
+*.app
+*.exe
+*.war
+*.zip
+
+
+# Large media files
+*.mp4
+*.tiff
+*.avi
+*.flv
+*.mov
+*.wmv
+
+# Env configurations
+.scannerwork/
+.env.*
+.env
+!.env.sample
+
+# Tests Coverage directory 
+coverage
+jest-stare
+*.lcov
+jest-stare/
+.eslint-report.json
+.eslintcache

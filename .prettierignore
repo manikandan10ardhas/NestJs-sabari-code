@@ -1,0 +1,16 @@
+*.yml
+coverage
+dist
+jest-stare
+package-lock.json
+package.json
+node_modules
+coverage
+/**/*.test.ts
+# /**/*.spec.ts
+package-scripts.js
+@types
+.eslint-report.json
+*.config.js
+nest-cli.json
+sonar-scanner.ts
